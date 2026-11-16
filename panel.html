@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>对话用量 · 本地只读</title>
+<title>对话用量</title>
 <style>
 :root{color-scheme:dark;--bg:#111316;--card:#1b1e23;--line:#30353d;--text:#edf1f5;--muted:#a2abb8;--accent:#70dec0;--warn:#ffc476}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 'Segoe UI','Microsoft YaHei',sans-serif}main{max-width:1000px;margin:auto;padding:22px}header{display:flex;align-items:center;justify-content:space-between;gap:10px}header strong{font-size:16px}small,.muted{color:var(--muted)}.badge{color:var(--accent);font-size:11px;background:#19372e;padding:4px 9px;border-radius:20px;white-space:nowrap}select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);font:inherit;margin:18px 0 12px}h1{font-size:22px;line-height:1.4;margin:4px 0 10px;overflow-wrap:anywhere}.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px}.chip{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.card{padding:15px;background:var(--card);border:1px solid var(--line);border-radius:12px;min-width:0}.label{color:var(--muted);font-size:12px}.value{font-size:28px;line-height:1.4;font-weight:650;letter-spacing:-.7px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.value.accent{color:var(--accent)}.sub{font-size:11px;color:var(--muted);margin-top:5px}.bar{height:5px;border-radius:5px;background:#30363d;margin:9px 0;overflow:hidden}.fill{height:100%;background:var(--accent);width:0;transition:width .3s}.wide{grid-column:1/-1}.token-breakdown{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:9px}.token-breakdown b{color:var(--text);font-weight:500}h2{font-size:15px;margin:24px 0 9px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;white-space:nowrap;text-align:right;font-size:12px}th,td{padding:10px;border-bottom:1px solid var(--line)}th{font-weight:500;color:var(--muted);background:var(--card)}td:first-child,th:first-child{text-align:left}tr:last-child td{border:0}details{margin-top:18px;color:var(--muted);font-size:12px}summary{cursor:pointer}details p{margin:9px 0}footer{font-size:11px;color:var(--muted);margin-top:20px;border-top:1px solid var(--line);padding-top:12px}.warning{color:var(--warn);background:#342719;border:1px solid #634825;padding:10px;border-radius:8px;margin:12px 0}.hidden{display:none}button{background:none;color:var(--accent);border:1px solid var(--line);border-radius:6px;padding:5px 9px;cursor:pointer;font:inherit;font-size:11px}button:hover{background:var(--card)}.line{display:flex;justify-content:space-between;align-items:center;gap:10px}.note{font-size:11px;color:var(--muted);margin:12px 0 0}#history-empty{padding:12px;color:var(--muted);font-size:12px}#connection{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:5px}@media(min-width:720px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.wide{grid-column:span 2}}@media(max-width:360px){main{padding:14px}.value{font-size:23px}h1{font-size:19px}}
@@ -10,13 +10,13 @@
 .primary-turn{background:#172b27;border:1px solid #457c6b;border-radius:14px;padding:20px;margin-bottom:14px}.primary-turn h2{font-size:21px;margin:0}.previous-meta{font-size:13px;color:var(--muted);margin:7px 0 18px}.previous-main{display:grid;grid-template-columns:1fr 1fr;gap:18px}.hero-value{font-size:38px;font-weight:650;line-height:1.35;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.hero-value.accent{color:var(--accent)}.previous-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px;padding-top:16px;border-top:1px solid #34594d}.previous-value{font-size:23px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}@media(max-width:600px){.previous-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-value{font-size:30px}.primary-turn{padding:16px}}
 </style>
 <style>
-#compact-status{display:none}.overview-link{color:var(--muted);font-size:11px;text-decoration:none}.overview-link:hover{color:var(--accent)}
+#compact-status{display:none}
 body.compact main{max-width:1000px;padding:12px}body.compact header{margin-bottom:10px}body.compact header strong{font-size:12px}body.compact #threads{display:none}body.compact.show-picker #threads{display:block;margin:0 0 10px}body.compact #details-content{display:none}
 body.compact #compact-status{display:block;border:1px solid #34594d;border-radius:10px;background:#172620;padding:12px}#mini-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-size:13px}#switch-thread{flex-shrink:0}
 .mini-meta{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:11px;margin:5px 0 12px}.mini-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.mini-metrics span{display:block;color:var(--muted);font-size:10px}.mini-metrics b{display:block;font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;color:var(--text)}#mini-rate,#mini-total-cost{color:var(--accent)}.mini-foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;color:var(--muted);font-size:11px;margin-top:10px}.mini-note{font-size:10px;color:var(--muted);margin-top:4px}body.compact footer{margin-top:10px;padding-top:8px}body.compact footer>div:last-child{display:none}@media(max-width:400px){.mini-metrics{gap:6px}.mini-metrics b{font-size:18px}.mini-metrics span{font-size:9px}}
 </style>
 <main>
- <header><strong>对话用量</strong><div class="line"><a href="http://127.0.0.1:8765/" class="overview-link">费用总览</a><button id="toggle-mode" type="button" aria-expanded="true">紧凑模式</button></div></header>
+ <header><strong>对话用量</strong><div class="line"><button id="toggle-floating" type="button" disabled>状态栏…</button><button id="toggle-mode" type="button" aria-expanded="true">紧凑模式</button></div></header>
  <label class="hidden" for="threads">选择本地对话</label><select id="threads" aria-label="选择本地对话"><option>正在读取本地对话…</option></select>
  <div id="error" class="warning hidden" role="status"></div>
  <section id="content">
@@ -30,7 +30,7 @@ body.compact #compact-status{display:block;border:1px solid #34594d;border-radiu
    <div><span>累计美元</span><b id="mini-total-cost">—</b></div>
   </div>
   <div class="mini-foot"><span id="mini-tokens">输入 — · 输出 —</span><span id="mini-sample">等待采样</span></div>
-  <div class="mini-note">美元为 API 参考 · 速度随日志采样更新 · <span id="mini-complete-note">本轮数据</span></div>
+  <div class="mini-note">美元为 API 参考 · 速度按日志采样</div>
  </section>
  <div id="details-content">
  <h1 id="name">等待本地数据</h1>
@@ -48,30 +48,23 @@ body.compact #compact-status{display:block;border:1px solid #34594d;border-radiu
    <div><div class="label">首 token 延迟</div><div id="prev-ttft" class="previous-value">—</div></div>
   </div>
  </section>
- <p class="note">周额度估算已停用；API 美元参考用于比较消耗，尚未设置 Pro100 周额度美元基数。</p>
  <div class="grid">
-  <div class="card wide"><div class="label">累计 token</div><div id="total" class="value accent">—</div><div class="token-breakdown sub"><span>输入 <b id="input">—</b></span><span>其中缓存 <b id="cached">—</b></span><span>输出 <b id="output">—</b></span></div><div class="sub">日志累计 · 缓存已包含在输入中</div></div>
+  <div class="card wide"><div class="label">累计 token</div><div id="total" class="value accent">—</div><div class="token-breakdown sub"><span>输入 <b id="input">—</b></span><span>其中缓存 <b id="cached">—</b></span><span>输出 <b id="output">—</b></span></div></div>
   <div class="card wide"><div class="label">上下文占用 · 最近有效采样</div><div id="context" class="value">—</div><div class="bar"><div class="fill" id="fill"></div></div><div id="context-detail" class="sub">—</div></div>
-  <div class="card"><div class="label">首 token 延迟</div><div id="ttft" class="value">—</div><div id="ttft-note" class="sub">当前 / 最近一轮</div></div>
-  <div class="card"><div class="label" id="duration-label">本轮耗时</div><div id="duration" class="value">—</div><div id="duration-note" class="sub">包含工具执行和等待</div></div>
-  <div class="card"><div class="label">近期输出速度</div><div id="rate" class="value">—</div><div class="sub" id="rate-note">等待近期 token 采样</div></div>
-  <div class="card"><div class="label">整轮平均速度</div><div id="avg-rate" class="value">—</div><div class="sub">输出 token/s · 包含等待</div></div>
-  <div class="card"><div class="label">本轮输出 token</div><div id="turn-output" class="value">—</div><div class="sub">含推理 · 以累计增量计算</div></div>
  </div>
  <p id="sample-note" class="note">—</p>
  <h2>按模型统计</h2><select id="model-scope" aria-label="模型统计范围"><option value="selected">当前对话累计</option><option value="all">全部可读主对话累计</option></select>
  <div class="table-wrap"><table><thead><tr><th>模型</th><th>输入</th><th>其中缓存</th><th>输出</th><th>合计 token</th><th>美元参考</th></tr></thead><tbody id="model-usage"></tbody></table></div>
- <p class="note">美元按 2026-11-09 标准 API 单价逐请求估算，包含缓存折扣和长上下文加价；未知模型不报价。订阅不按此金额扣款，工具费用和服务档位差价未计入。全部统计覆盖可读主对话，不合并子 agent，也不按账号区分历史记录。</p>
+ <p class="note">美元按 API 单价估算，计入缓存折扣和长上下文加价；不代表订阅扣款。全部统计覆盖本地可读主对话。</p>
  <h2>最近完成的轮次</h2>
  <div class="table-wrap" style="max-height:320px"><table><thead><tr><th>完成时间</th><th>首 token</th><th>耗时</th><th>平均 token/s</th><th>本轮 token</th><th>美元参考</th></tr></thead><tbody id="history"></tbody></table><div id="history-empty">暂无已完成的轮次</div></div>
- <details><summary>指标说明与覆盖范围</summary><p>基于账户整数百分比差的周额度估算已停用。美元参考费用按模型的 token 单价计算，不能直接视为 Pro100 的订阅消耗比例。</p><p>近期输出速度为同一轮最近两次 token 计数增量除以采样间隔；采样超过 30 秒未更新或间隔超过 60 秒时不显示。它是采样区间的有效速度，可能包含等待与工具调用，并非逐 token 解码速度。历史轮次保留整轮平均速度。</p><p>累计 token 来自本地日志；没有可读取 token 记录的对话不在面板列出。</p></details>
  </div>
  </section>
- <footer><div class="line"><span><i id="connection"></i><span id="updated">正在连接…</span></span><button id="refresh" type="button">刷新</button></div><div style="margin-top:6px">本地日志 2 秒刷新 · 无模型调用</div></footer>
+ <footer><div class="line"><span><i id="connection"></i><span id="updated">正在连接…</span></span><button id="refresh" type="button">刷新</button></div></footer>
 </main>
 <script>
 const $=id=>document.getElementById(id), fmt=n=>n==null?'—':new Intl.NumberFormat('zh-CN').format(n);
-let selected=new URL(location.href).searchParams.get('thread')||'', lastData=null, inFlight=false;
+let selected=new URL(location.href).searchParams.get('thread')||'', lastData=null, inFlight=false, floatingOpen=false;
 let compact=new URL(location.href).searchParams.get('mode')==='compact';
 const seconds=ms=>ms==null||!Number.isFinite(ms)?'待记录':(ms/1000).toFixed(1)+' s';
 const clock=t=>t==null?'—':new Date(t*1000).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
@@ -96,23 +89,18 @@ function renderCompact(d){
  $('mini-total-cost').title=known.length<all.length?'部分模型缺少单价，只显示已定价部分':'当前主对话累计 API 美元参考，不合并子 agent';
  set('mini-tokens','输入 '+short(u?.input_tokens)+' · 缓存 '+short(u?.cached_input_tokens)+' · 输出 '+short(u?.output_tokens));
  set('mini-sample',d.sample_at?clock(d.sample_at):'等待采样');
- set('mini-complete-note',t.usage_complete===false?'计数不完整':known.length<all.length?'* 部分模型待定价':'主对话数据');
 }
 function chooseThread(id){selected=id;lastData=null;document.body.classList.remove('show-picker');$('switch-thread').setAttribute('aria-expanded','false');set('name','正在切换…');$('content').classList.add('hidden');poll()}
 function renderTurn(d){
- const t=d.turn||{}, running=t.status==='running', stale=t.status==='unconfirmed';
+ const t=d.turn||{};
  set('status',({running:'本轮进行中',unconfirmed:'状态待确认',complete:'最近一轮已完成',aborted:'最近一轮已中断'})[t.status]||'暂无轮次');
- set('ttft',seconds(t.ttft_ms));set('ttft-note',running||stale?'本轮结束后由日志确认':'日志记录的首 token 等待');
- set('duration-label',running?'本轮已用时':'最近一轮耗时');
- const elapsed=running?t.elapsed_ms:t.duration_ms;
- set('duration',stale?'待确认':seconds(elapsed));set('rate',t.recent_rate!=null?t.recent_rate.toFixed(1):'—');set('rate-note',t.recent_rate_at!=null?'token/s · 采样 '+clock(t.recent_rate_at):running?'等待近期 token 采样':'仅进行中显示近期采样速度');set('turn-output',fmt(t.output_tokens));set('avg-rate',!stale&&t.rate!=null?t.rate.toFixed(1):'—');
 }
 function renderModels(data){
  const rows=$('model-scope').value==='all'?data.models:data.selected?.models;
  $('model-usage').replaceChildren(...(rows||[]).slice().sort((a,b)=>b.total_tokens-a.total_tokens).map(r=>{const tr=document.createElement('tr');for(const v of [r.model,fmt(r.input_tokens),fmt(r.cached_input_tokens),fmt(r.output_tokens),fmt(r.total_tokens),money(r.cost_usd)]){const td=document.createElement('td');td.textContent=v;tr.append(td)}return tr}));
 }
 function render(data){
- lastData=data;const d=data.selected, list=data.threads||[];
+ lastData=data;floatingOpen=!!data.floating_open;$('toggle-floating').textContent=floatingOpen?'关闭状态栏':'打开状态栏';$('toggle-floating').disabled=false;const d=data.selected, list=data.threads||[];
  const signature=JSON.stringify(list.map(t=>[t.id,t.name]));
  if($('threads').dataset.signature!==signature){
   $('threads').replaceChildren(...list.map(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.name;return o}));$('threads').dataset.signature=signature;
@@ -147,5 +135,10 @@ $('model-scope').addEventListener('change',()=>{if(lastData)renderModels(lastDat
 $('toggle-mode').addEventListener('click',()=>{compact=!compact;applyMode()});
 $('switch-thread').addEventListener('click',()=>{const open=document.body.classList.toggle('show-picker');$('switch-thread').setAttribute('aria-expanded',String(open));if(open)$('threads').focus()});
 $('threads').addEventListener('change',()=>chooseThread($('threads').value));$('refresh').addEventListener('click',poll);
+$('toggle-floating').addEventListener('click',async()=>{
+ const button=$('toggle-floating');button.disabled=true;
+ try{const response=await fetch('/floating',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:floatingOpen?'close':'open',thread:selected})});if(!response.ok)throw new Error();button.textContent=floatingOpen?'正在关闭…':'正在打开…';setTimeout(poll,700)}
+ catch(e){$('error').classList.remove('hidden');set('error','状态栏操作失败，请重试。');button.disabled=false}
+});
 setInterval(()=>{if(!document.hidden)poll()},2000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});applyMode();poll();
 </script></html>
