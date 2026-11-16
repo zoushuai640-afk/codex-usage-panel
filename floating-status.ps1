@@ -7,8 +7,8 @@ New-Item -ItemType Directory -Path $runtime -Force | Out-Null
 $configPath = Join-Path $runtime 'floating-status.json'
 $script:config = @{ thread = ''; offsetX = 0; offsetY = 0 }
 if (Test-Path -LiteralPath $configPath) { $script:config = Get-Content $configPath -Raw | ConvertFrom-Json -AsHashtable }
-if ($script:config.anchorMode -ne 'composer-body') {
-    $script:config = @{ thread = $script:config.thread; offsetX = 0; offsetY = 0; anchorMode = 'composer-body' }
+if ($script:config.anchorMode -ne 'conversation-top-v2') {
+    $script:config = @{ thread = $script:config.thread; offsetX = 0; offsetY = 0; anchorMode = 'conversation-top-v2' }
 }
 if ($ThreadId) { $script:config.thread = $ThreadId }
 $server = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList @('-NoProfile','-WindowStyle','Hidden','-File',('"'+(Join-Path $PSScriptRoot 'start-panel.ps1')+'"')) -WindowStyle Hidden -PassThru
@@ -35,13 +35,13 @@ public static class TokenFloatNative {
    <Grid.RowDefinitions><RowDefinition Height="20"/><RowDefinition Height="26"/></Grid.RowDefinitions>
    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/><ColumnDefinition Width="20"/></Grid.ColumnDefinitions>
    <StackPanel x:Name="TitleArea" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="44,0" Cursor="SizeAll">
-    <TextBlock x:Name="TitleText" Text="绑定会话 · 正在连接" Foreground="#62666C" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="自动贴齐输入框；拖动可微调，从菜单恢复贴齐。"/>
+    <TextBlock x:Name="TitleText" Text="绑定会话 · 正在连接" Foreground="#62666C" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="默认位于对话区顶部；拖动可微调，从菜单恢复默认位置。"/>
     <TextBlock x:Name="ModelText" Margin="8,0,0,0" Foreground="#34383E" FontSize="12" VerticalAlignment="Center"/>
    </StackPanel>
    <Button x:Name="MenuButton" Grid.Column="1" Content="⋯" Background="Transparent" Foreground="#697078" BorderThickness="0" ToolTip="选择会话 / 打开详情 / 恢复贴齐"/>
    <Button x:Name="CloseButton" Grid.Column="2" Content="×" Background="Transparent" Foreground="#697078" BorderThickness="0" ToolTip="关闭浮动细条"/>
    <UniformGrid x:Name="MetricsGrid" Grid.Row="1" Grid.ColumnSpan="3" Columns="4" VerticalAlignment="Center" ToolTip="近期是日志采样区间速度；平均包含工具与等待。美元是 API 等值参考，* 表示部分模型未定价。">
-    <TextBlock TextAlignment="Center" Foreground="#72767D" FontSize="11"><Run Text="近期 "/><Run x:Name="RecentValue" Text="—" FontSize="15" FontWeight="SemiBold" Foreground="#166B50"/><Run Text=" t/s" FontSize="10"/></TextBlock>
+    <TextBlock TextAlignment="Center" Foreground="#72767D" FontSize="11"><Run Text="近期 "/><Run x:Name="RecentValue" Text="等待采样" FontSize="12" FontWeight="SemiBold" Foreground="#166B50"/><Run x:Name="RecentUnit" Text="" FontSize="10"/></TextBlock>
     <TextBlock TextAlignment="Center" Foreground="#72767D" FontSize="11"><Run Text="平均 "/><Run x:Name="AverageValue" Text="—" FontSize="15" FontWeight="SemiBold" Foreground="#24272C"/><Run Text=" t/s" FontSize="10"/></TextBlock>
     <TextBlock TextAlignment="Center" Foreground="#72767D" FontSize="11"><Run x:Name="RoundLabel" Text="本轮 "/><Run x:Name="RoundValue" Text="—" FontSize="15" FontWeight="SemiBold" Foreground="#24272C"/></TextBlock>
     <TextBlock TextAlignment="Center" Foreground="#72767D" FontSize="11"><Run Text="累计 "/><Run x:Name="TotalValue" Text="—" FontSize="15" FontWeight="SemiBold" Foreground="#24272C"/></TextBlock>
@@ -56,6 +56,7 @@ $script:titleText = $window.FindName('TitleText')
 $script:modelText = $window.FindName('ModelText')
 $script:metricsText = $window.FindName('MetricsText')
 $script:recentValue = $window.FindName('RecentValue')
+$script:recentUnit = $window.FindName('RecentUnit')
 $script:averageValue = $window.FindName('AverageValue')
 $script:roundLabel = $window.FindName('RoundLabel')
 $script:roundValue = $window.FindName('RoundValue')
@@ -116,13 +117,15 @@ function Render-FloatingData($data) {
     $effort = switch ($d.reasoning_effort) { 'none' {'无'} 'minimal' {'最低'} 'low' {'低'} 'medium' {'中'} 'high' {'高'} 'xhigh' {'极高'} 'max' {'最高'} 'ultra' {'超高'} default { if ($d.reasoning_effort) { $d.reasoning_effort } else { '待记录' } } }
     $script:titleText.Text = $d.name
     $script:modelText.Text = '· ' + $d.model + ' · 思考 ' + $effort
-    $script:titleText.ToolTip = $d.name + "`n" + $d.id + "`n模型与思考强度取最近本地日志设置。自动贴齐输入框；拖动可微调，点击 ⋯ 恢复贴齐或切换会话。"
+    $script:titleText.ToolTip = $d.name + "`n" + $d.id + "`n模型与思考强度取最近本地日志设置。位于对话区顶部；拖动可微调，点击 ⋯ 恢复默认位置或切换会话。"
     $avg = if ($t.status -eq 'unconfirmed') { $null } else { $t.rate }
     $cost = if ($u -and $t.usage_complete) { Format-USD $t.cost_usd } else { '—' }
     $known = @($d.models | Where-Object {$null -ne $_.cost_usd})
     $total = if ($known.Count) { Format-USD (($known | Measure-Object cost_usd -Sum).Sum) } else { '待定价' }
     if ($known.Count -lt @($d.models).Count) { $total += '*' }
-    $script:recentValue.Text = Format-Rate $t.recent_rate
+    $script:recentValue.Text = if ($null -eq $t.recent_rate) { if ($t.status -eq 'running') { '等待采样' } else { '暂无采样' } } else { Format-Rate $t.recent_rate }
+    $script:recentValue.FontSize = if ($null -eq $t.recent_rate) { 12 } else { 15 }
+    $script:recentUnit.Text = if ($null -eq $t.recent_rate) { '' } else { ' t/s' }
     $script:averageValue.Text = Format-Rate $avg
     $script:roundLabel.Text = $status + ' '
     $script:roundValue.Text = $cost
@@ -134,7 +137,7 @@ $menuButton.Add_Click({
     $detail = [Windows.Controls.MenuItem]::new(); $detail.Header = '在浏览器打开绑定会话详情'
     $detail.Add_Click({ Start-Process ('http://127.0.0.1:8767/?thread='+$script:config.thread+'&mode=details') })
     [void]$menu.Items.Add($detail)
-    $reset = [Windows.Controls.MenuItem]::new(); $reset.Header = '恢复自动贴齐输入框'
+    $reset = [Windows.Controls.MenuItem]::new(); $reset.Header = '恢复对话区顶部位置'
     $reset.Add_Click({ $script:config.offsetX = 0; $script:config.offsetY = 0; Save-FloatingConfig })
     [void]$menu.Items.Add($reset)
     [void]$menu.Items.Add([Windows.Controls.Separator]::new())
@@ -151,12 +154,13 @@ $window.FindName('TitleArea').Add_MouseLeftButtonDown({
     $script:dragging = $true
     $script:window.DragMove()
     $script:dragging = $false
-    $rect = [TokenFloatNative+Rect]::new()
+    $rect = [TokenFloatNative+Rect]::new(); $ownerRect = [TokenFloatNative+Rect]::new()
     [void][TokenFloatNative]::GetWindowRect($script:handle,[ref]$rect)
+    [void][TokenFloatNative]::GetWindowRect($script:ownerHandle,[ref]$ownerRect)
     if ($script:anchor) {
         $scale = [TokenFloatNative]::GetDpiForWindow($script:ownerHandle)/96.0
-        $script:config.offsetX = $rect.Left-$script:anchor[0]
-        $script:config.offsetY = $rect.Top-($script:anchor[1]-60*$scale)
+        $script:config.offsetX = $rect.Left-($script:anchor[0]-8*$scale)
+        $script:config.offsetY = $rect.Top-($ownerRect.Top+100*$scale)
     }
     Save-FloatingConfig
 })
@@ -189,8 +193,9 @@ $timer.Add_Tick({
             $scale = [TokenFloatNative]::GetDpiForWindow($script:ownerHandle)/96.0
             $width = [int]$script:anchor[2]
             $height = [int](54*$scale)
-            $left = [int]($script:anchor[0]+$script:config.offsetX)
-            $top = [int]($script:anchor[1]-$height-6*$scale+$script:config.offsetY)
+            $ownerRect = [TokenFloatNative+Rect]::new(); [void][TokenFloatNative]::GetWindowRect($script:ownerHandle,[ref]$ownerRect)
+            $left = [int]($script:anchor[0]-8*$scale+$script:config.offsetX)
+            $top = [int]($ownerRect.Top+100*$scale+$script:config.offsetY)
             $script:titleText.MaxWidth = [Math]::Max(50,$width/$scale-$script:modelText.ActualWidth-112)
             [void][TokenFloatNative]::SetWindowPos($script:handle,[IntPtr]::Zero,$left,$top,$width,$height,0x0014)
         }
@@ -202,7 +207,7 @@ $timer.Add_Tick({
         } catch { $script:metricsText.Text = '连接中断 · 等待本地服务恢复'; $script:metricsText.Visibility = 'Visible' }
         $script:pending = $null
     }
-    if (-not $script:pending -and ([datetime]::Now-$script:lastRequest).TotalSeconds -ge 2) {
+    if (-not $script:pending -and ([datetime]::Now-$script:lastRequest).TotalMilliseconds -ge 500) {
         $script:requestedThread = $script:config.thread
         $script:pending = $script:client.GetStringAsync('http://127.0.0.1:8767/api?thread='+[uri]::EscapeDataString($script:requestedThread))
         $script:lastRequest = [datetime]::Now

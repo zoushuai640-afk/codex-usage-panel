@@ -1,5 +1,6 @@
 """Local, read-only Codex rollout telemetry. Python standard library only."""
 import argparse
+import ctypes
 from collections import deque
 from contextlib import closing
 from datetime import datetime
@@ -7,7 +8,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import sqlite3
+import subprocess
 import threading
 import time
 from urllib.parse import parse_qs, urlsplit
@@ -18,6 +22,47 @@ APP_ID = "codex-token-panel-v1"
 ROOT = Path(__file__).resolve().parent
 TOKEN_KEYS = ("input_tokens", "cached_input_tokens", "cache_write_input_tokens",
               "output_tokens", "reasoning_output_tokens", "total_tokens")
+
+
+def floating_handle():
+    if os.name != "nt":
+        return None
+    try:
+        pid = int((ROOT / "runtime" / "floating-status.pid").read_text().strip())
+    except (OSError, ValueError):
+        return None
+    user32 = ctypes.windll.user32
+    user32.FindWindowW.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p)
+    user32.FindWindowW.restype = ctypes.c_void_p
+    hwnd = user32.FindWindowW(None, "Codex 会话用量细条")
+    if not hwnd:
+        return None
+    owner = ctypes.c_ulong()
+    user32.GetWindowThreadProcessId.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong))
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+    return hwnd if owner.value == pid else None
+
+
+def control_floating(action, thread):
+    hwnd = floating_handle()
+    if action == "close":
+        if hwnd:
+            user32 = ctypes.windll.user32
+            user32.PostMessageW.argtypes = (ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t)
+            if not user32.PostMessageW(hwnd, 0x0010, 0, 0):  # WM_CLOSE
+                raise OSError("无法关闭状态栏")
+    elif action == "open" and not hwnd:
+        script = ROOT / "浮动状态栏.ps1"
+        if not script.is_file():
+            script = ROOT / "floating-status.ps1"
+        pwsh = shutil.which("pwsh.exe")
+        if not pwsh or not script.is_file():
+            raise OSError("未找到 PowerShell 7 或状态栏脚本")
+        cmd = [pwsh, "-NoProfile", "-STA", "-WindowStyle", "Hidden", "-File", str(script)]
+        if thread:
+            cmd += ["-ThreadId", thread]
+        subprocess.Popen(cmd, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
 
 
 def canonical(path):
@@ -284,6 +329,7 @@ def handler(store):
                 elif url.path == "/api":
                     with snapshot_lock:
                         data = store.snapshot(parse_qs(url.query).get("thread", [None])[0])
+                    data["floating_open"] = bool(floating_handle())
                     body, mime = json.dumps(data, ensure_ascii=False).encode(), "application/json"
                 elif url.path == "/":
                     body, mime = (ROOT / "panel.html").read_bytes(), "text/html"
@@ -301,6 +347,38 @@ def handler(store):
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'")
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_POST(self):
+            authority = f"127.0.0.1:{self.server.server_port}"
+            if (self.path != "/floating" or self.headers.get("Host") != authority
+                    or self.headers.get("Origin") != "http://" + authority
+                    or self.headers.get("Sec-Fetch-Site") == "cross-site"):
+                self.send_error(403)
+                return
+            try:
+                size = int(self.headers.get("Content-Length", "0"))
+                if not 0 < size <= 1024 or self.headers.get_content_type() != "application/json":
+                    raise ValueError("无效请求")
+                request = json.loads(self.rfile.read(size))
+                if not isinstance(request, dict):
+                    raise ValueError("无效请求")
+                action, thread = request.get("action"), request.get("thread", "")
+                if action not in ("open", "close") or not isinstance(thread, str) or (thread and not re.fullmatch(r"[0-9a-fA-F-]{36}", thread)):
+                    raise ValueError("无效请求")
+                control_floating(action, thread)
+            except (ValueError, TypeError, json.JSONDecodeError):
+                self.send_error(400)
+                return
+            except OSError:
+                self.send_error(500)
+                return
+            body = b'{"ok":true}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
     return Handler

@@ -175,6 +175,21 @@ class PanelTests(unittest.TestCase):
                         Request(base + "/api", data=b"write"), Request(base + "/server.py")]:
                 with self.assertRaises(HTTPError):
                     urlopen(req)
+            payload = json.dumps({"action": "open", "thread": "00000000-0000-4000-8000-000000000001"}).encode()
+            headers = {"Origin": base, "Content-Type": "application/json"}
+            with patch("server.control_floating") as control:
+                with urlopen(Request(base + "/floating", data=payload, headers=headers)) as response:
+                    self.assertTrue(json.load(response)["ok"])
+                control.assert_called_once_with("open", "00000000-0000-4000-8000-000000000001")
+                for origin in ("https://evil.test", None):
+                    bad_headers = {"Content-Type": "application/json"}
+                    if origin:
+                        bad_headers["Origin"] = origin
+                    with self.assertRaises(HTTPError):
+                        urlopen(Request(base + "/floating", data=payload, headers=bad_headers))
+                with self.assertRaises(HTTPError):
+                    urlopen(Request(base + "/floating", data=b'{"action":"open","thread":"../x"}', headers=headers))
+                self.assertEqual(control.call_count, 1)
         finally:
             http.shutdown()
             http.server_close()
